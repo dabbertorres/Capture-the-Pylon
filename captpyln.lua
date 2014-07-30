@@ -10,12 +10,16 @@ local playerList = {}
 
 local pylonODF = "nparr"
 local pylon = nil
+--path that the pylon to capture spawns at.
+--Should ideally be directly in the middle of the map.
 local pylonSpawn = "pylonSpawn"
 
 local capturesToWin = 5
 
+--the path Team one's pylon spawns at.
 local teamOneBaseSpawn = "TeamOneSpawn"
 local teamOneBase = nil
+--the path Team two's pylon spawns at.
 local teamTwoBaseSpawn = "TeamTwoSpawn"
 local teamTwoBase = nil
 
