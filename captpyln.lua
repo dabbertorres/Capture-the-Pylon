@@ -74,6 +74,7 @@ function Receive(from, type, ...)
 			playerList[p] = nil
 		end
 	elseif type == 'r' then	--reset game
+		DisplayMessage("RESETTING GAME!")
 		teamOneCaptures = 0
 		teamTwoCaptures = 0
 		gameOver = false
@@ -143,6 +144,8 @@ function Start()
 end
 
 function Update(timestep)
+	StartCockpitTimer(teamOneCaptures * 60 + teamTwoCaptures)
+	StopCockpitTimer()
 	if IsHosting() then
 		if pylon ~= nil then	--pylon is not being carried
 			for h in ObjectsInRange(5, pylon) do	--if a player captures the pylon
@@ -167,7 +170,7 @@ function Update(timestep)
 				end
 			end
 
-		--Check team 2
+			--Check team 2
 			for h in ObjectsInRange(5, teamTwoBase) do
 				if GetTeamNum(h) ~= 0 and GetTeamNum(h) % 2 == 0 then
 					if playerList[GetTeamNum(h)].hasPylon then
