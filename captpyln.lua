@@ -38,21 +38,17 @@ end
 function Receive(from, type, ...)
 	if type == 'p' then	--a player picked up the pylon
 		local playerNum = ...
-		if playerList[playerNum] ~= nil then
-			playerList[playerNum].hasPylon = true
-			DisplayMessage("Player "..playerNum..", "..playerList[playerNum].name..", picked up the pylon!")
-		end
+		playerList[playerNum].hasPylon = true
+		DisplayMessage("Player "..playerNum..", "..playerList[playerNum].name..", picked up the pylon!")
 	elseif type == 'c' then	--a player captured the pylon
 		local playerNum = ...
-		if playerList[playerNum] ~= nil then
-			playerList[playerNum].hasPylon = false	--remove pylon from player
-			DisplayMessage("Player "..playerNum..", "..playerList[playerNum].name..", captured the pylon for Team "..((playerNum % 2 == 1) and 1 or 2).."!")
+		playerList[playerNum].hasPylon = false	--remove pylon from player
+		DisplayMessage("Player "..playerNum..", "..playerList[playerNum].name..", captured the pylon for Team "..((playerNum % 2 == 1) and 1 or 2).."!")
 
-			if playerNum % 2 == 0 then	--team two captured it
-				teamTwoCaptures = teamTwoCaptures + 1
-			else	--team one captured it
-				teamOneCaptures = teamOneCaptures + 1
-			end
+		if playerNum % 2 == 0 then	--team two captured it
+			teamTwoCaptures = teamTwoCaptures + 1
+		else	--team one captured it
+			teamOneCaptures = teamOneCaptures + 1
 		end
 	elseif type == 'w' then	--a team won
 		local teamNum = ...
@@ -68,9 +64,11 @@ function Receive(from, type, ...)
 	elseif type == 'l' then	--player updates
 		if select('#', ...) >= 3 then
 			local p, hp, n = ...
+			playerList[p] = {}
 			playerList[p].hasPylon = hp
 			playerList[p].name = n
 		else
+			local p = ...
 			playerList[p] = nil
 		end
 	elseif type == 'r' then	--reset game
@@ -82,13 +80,14 @@ function Receive(from, type, ...)
 end
 
 function CreatePlayer(id, name, team)
+	playerList[team] = {}
 	setmetatable(playerList[team], Player)
 	playerList[team].hasPylon = false
 	playerList[team].name = name
 end
 
 function AddPlayer(id, name, team)
-	if isHosting() then
+	if IsHosting() then
 		Send(id, 'u', 1, teamOneCaptures)
 		Send(id, 'u', 2, teamTwoCaptures)
 
@@ -154,6 +153,7 @@ function Update(timestep)
 					RemoveObject(pylon)
 					pylon = nil
 					Send(0, 'p', GetTeamNum(h))
+					DisplayMessage("Player "..GetTeamNum(h)..", "..playerList[GetTeamNum(h)].name..", picked up the pylon!")
 					break	--make sure we don't make two players 'have' the pylon
 				end
 			end
@@ -163,8 +163,10 @@ function Update(timestep)
 				if GetTeamNum(h) ~= 0 and GetTeamNum(h) % 2 == 1 then
 					if playerList[GetTeamNum(h)].hasPylon then
 						playerList[GetTeamNum(h)].hasPylon = false	--remove pylon
+						teamOneCaptures = teamOneCaptures + 1
 						pylon = BuildObject(PYLON_ODF, 0, PYLON_SPAWN)	--respawn pylon
 						Send(0, 'c', GetTeamNum(h))
+						DisplayMessage("Player "..GetTeamNum(h)..", "..playerList[GetTeamNum(h)].name..", captured the pylon for Team 1!")
 						break
 					end
 				end
@@ -175,8 +177,10 @@ function Update(timestep)
 				if GetTeamNum(h) ~= 0 and GetTeamNum(h) % 2 == 0 then
 					if playerList[GetTeamNum(h)].hasPylon then
 						playerList[GetTeamNum(h)].hasPylon = false	--remove pylon
+						teamTwoCaptures = teamTwoCaptures + 1
 						pylon = BuildObject(PYLON_ODF, 0, PYLON_SPAWN)	--respawn pylon
 						Send(0, 'c', GetTeamNum(h))
+						DisplayMessage("Player "..GetTeamNum(h)..", "..playerList[GetTeamNum(h)].name..", captured the pylon for Team 2!")
 						break
 					end
 				end
@@ -185,6 +189,7 @@ function Update(timestep)
 
 		if (teamOneCaptures >= CAPTURES_TO_WIN or teamTwoCaptures >= CAPTURES_TO_WIN) and not gameOver then
 			Send(0, 'w', (teamOneCaptures >= CAPTURES_TO_WIN) and 1 or 2)	--equivalent to teamOneCaptures >= CAPTURES_TO_WIN ? 1 : 2
+			DisplayMessage("Team "..((teamOneCaptures >= CAPTURES_TO_WIN) and 1 or 2).." wins!")
 			gameOver = true
 		end
 	end
