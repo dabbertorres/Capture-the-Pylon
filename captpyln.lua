@@ -4,7 +4,7 @@
 	The goal is to capture the center pylon (run into it) and run back to your base.
 	If you do that, you get a point. Do it 5 times, and your team wins!
 ]]
-local Player = {handle = nil, hasPylon = false, name = nil}
+local Player = {hasPylon = false, name = nil}
 
 local playerList = {}
 
@@ -25,7 +25,7 @@ local teamTwoBase = nil
 
 local teamOneCaptures = 0
 local teamTwoCaptures = 0
-local bGameOver = false
+local gameOver = false
 
 function Receive(from, type, ...)
 	if type == 'p' then	--a player picked up the pylon
@@ -37,19 +37,19 @@ function Receive(from, type, ...)
 	elseif type == 'c' then	--a player captured the pylon
 		local playerNum = ...
 		if playerList[playerNum] ~= nil then
+			playerList[playerNum].hasPylon = false	--remove pylon from player
+			DisplayMessage("Player "..playerNum..", "..playerList[playerNum].name..", captured the pylon for Team "..((playerNum % 2 == 1) and 1 or 2).."!")
+
 			if playerNum % 2 == 0 then	--team two captured it
-				playerList[playerNum].hasPylon = false	--remove pylon from player
 				teamTwoCaptures = teamTwoCaptures + 1
-				DisplayMessage("Player "..playerNum..", "..playerList[playerNum].name..", captured the pylon for Team 2!")
 			else	--team one captured it
-				playerList[playerNum].hasPylon = false	--remove pylon from player
 				teamOneCaptures = teamOneCaptures + 1
-				DisplayMessage("Player "..playerNum..", "..playerList[playerNum].name..", captured the pylon for Team 1!")
 			end
 		end
 	elseif type == 'w' then	--a team won
 		local teamNum = ...
 		DisplayMessage("Team "..teamNum.." wins!")
+		gameOver = true
 	elseif type == 'u' then	--update captures
 		local t, c = ...
 		if t == 1 then
@@ -58,20 +58,22 @@ function Receive(from, type, ...)
 			teamTwoCaptures = c
 		end
 	elseif type == 'l' then	--player updates
-		if select('#', ...) >= 4 then
-			local p, h, hp, n = ...
-			playerList[p].handle = h
+		if select('#', ...) >= 3 then
+			local p, hp, n = ...
 			playerList[p].hasPylon = hp
 			playerList[p].name = n
 		else
 			playerList[p] = nil
 		end
+	elseif type == 'r' then	--reset game
+		teamOneCaptures = 0
+		teamTwoCaptures = 0
+		gameOver = false
 	end
 end
 
 function CreatePlayer(id, name, team)
 	setmetatable(playerList[team], Player)
-	playerList[team].handle = GetPlayerHandle(team)
 	playerList[team].hasPylon = false
 	playerList[team].name = name
 end
@@ -83,7 +85,7 @@ function AddPlayer(id, name, team)
 
 		for i = 1, 8 do
 			if playerList[i] ~= nil then
-				Send(id, 'l', i, playerList[i].handle, playerList[i].hasPylon, playerList[i].name)
+				Send(id, 'l', i, playerList[i].hasPylon, playerList[i].name)
 			else
 				Send(id, 'l', i)
 			end
@@ -103,10 +105,6 @@ function DeletePlayer(id, name, team)
 end
 
 function Start()
-	for i = 1, 8 do
-		playerList[i] = nil
-	end
-
 	if IsHosting() then
 		pylon = BuildObject(PYLON_ODF, 0, PYLON_SPAWN)
 		teamOneBase = BuildObject(PYLON_ODF, 0, TEAM_ONE_BASE_SPAWN)
@@ -174,9 +172,9 @@ function Update(timestep)
 			end
 		end
 
-		if (teamOneCaptures >= CAPTURES_TO_WIN or teamTwoCaptures >= CAPTURES_TO_WIN) and not bGameOver then
+		if (teamOneCaptures >= CAPTURES_TO_WIN or teamTwoCaptures >= CAPTURES_TO_WIN) and not gameOver then
 			Send(0, 'w', (teamOneCaptures >= CAPTURES_TO_WIN) and 1 or 2)	--equivalent to teamOneCaptures >= CAPTURES_TO_WIN ? 1 : 2
-			bGameOver = true
+			gameOver = true
 		end
 	end
 end
