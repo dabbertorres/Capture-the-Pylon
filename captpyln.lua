@@ -27,6 +27,14 @@ local teamOneCaptures = 0
 local teamTwoCaptures = 0
 local gameOver = false
 
+function Command(command, args)
+	if command == "reset" then
+		if IsHosting() then	--only host can call this command
+			Send(0, 'r')
+		end
+	end
+end
+
 function Receive(from, type, ...)
 	if type == 'p' then	--a player picked up the pylon
 		local playerNum = ...
